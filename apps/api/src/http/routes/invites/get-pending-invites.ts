@@ -1,3 +1,4 @@
+import { roleSchema } from '@saas/auth'
 import type { FastifyInstance } from 'fastify'
 import { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod'
@@ -16,29 +17,71 @@ export async function getPendingInvites(app: FastifyInstance) {
       {
         schema: {
           tags: ['invites'],
-          summary: 'Accept an invite',
-          params: z.object({
-            inviteId: z.string().uuid(),
-          }),
+          summary: 'Get all user pending invites',
           response: {
             200: z.object({
-              invites: z.array(z.object({})),
+              invites: z.array(
+                z.object({
+                  id: z.string().uuid(),
+                  email: z.string().email(),
+                  role: roleSchema,
+                  createdAt: z.date(),
+                  author: z
+                    .object({
+                      id: z.string(),
+                      name: z.string().nullable(),
+                      avatarUrl: z.string().nullable(),
+                    })
+                    .nullable(),
+                  organization: z.object({
+                    name: z.string(),
+                  }),
+                }),
+              ),
             }),
           },
         },
       },
-      async (request, reply) => {
+      async (request) => {
         const userId = await request.getCurrentUserId()
 
-        const invites = await prisma.invite.findMany({
+        const user = await prisma.user.findUnique({
           where: {
-            author: {
-              id: userId,
-            },
+            id: userId,
           },
         })
 
-        return reply.status(200).send()
+        if (!user) {
+          throw new BadRequestError('User not found.')
+        }
+
+        const invites = await prisma.invite.findMany({
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            createdAt: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                avatarUrl: true,
+              },
+            },
+            organization: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          where: {
+            email: user.email,
+          },
+        })
+
+        return {
+          invites,
+        }
       },
     )
 }

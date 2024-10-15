@@ -3,7 +3,7 @@
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import githubIcon from '@/assets/github-icon.svg'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -18,14 +18,17 @@ import { signInWithEmailAndPassword } from './actions'
 
 export function SignInForm() {
   const router = useRouter()
-  const [{ success, message, errors }, handleSubmit, isPending] = useFormState(
+  const searchParams = useSearchParams()
+
+  const [{ errors, message, success }, handleSubmit, isPending] = useFormState(
     signInWithEmailAndPassword,
     () => {
       router.push('/')
     },
   )
+
   return (
-    <div>
+    <div className="space-y-4">
       <form onSubmit={handleSubmit} className="space-y-4">
         {success === false && message && (
           <Alert variant="destructive">
@@ -36,18 +39,27 @@ export function SignInForm() {
             </AlertDescription>
           </Alert>
         )}
+
         <div className="space-y-1">
           <Label htmlFor="email">E-mail</Label>
-          <Input name="email" type="email" id="email" />
+          <Input
+            name="email"
+            type="email"
+            id="email"
+            defaultValue={searchParams.get('email') ?? ''}
+          />
+
           {errors?.email && (
             <p className="text-xs font-medium text-red-500 dark:text-red-400">
               {errors.email[0]}
             </p>
           )}
         </div>
+
         <div className="space-y-1">
           <Label htmlFor="password">Password</Label>
           <Input name="password" type="password" id="password" />
+
           {errors?.password && (
             <p className="text-xs font-medium text-red-500 dark:text-red-400">
               {errors.password[0]}
@@ -56,7 +68,7 @@ export function SignInForm() {
 
           <Link
             href="/auth/forgot-password"
-            className="font-md text-sm text-foreground hover:underline"
+            className="text-xs font-medium text-foreground hover:underline"
           >
             Forgot your password?
           </Link>
@@ -70,21 +82,17 @@ export function SignInForm() {
           )}
         </Button>
 
-        <Button
-          className="w-full"
-          variant="link"
-          type="submit"
-          size="sm"
-          asChild
-        >
+        <Button className="w-full" variant="link" size="sm" asChild>
           <Link href="/auth/sign-up">Create new account</Link>
         </Button>
       </form>
+
       <Separator />
+
       <form action={signInWithGithub}>
-        <Button className="w-full" variant="outline" type="submit">
-          <Image src={githubIcon} className="mr-2 size-4 dark:invert" alt="" />
-          Sign in with github
+        <Button type="submit" className="w-full" variant="outline">
+          <Image src={githubIcon} alt="" className="mr-2 size-4 dark:invert" />
+          Sign in with GitHub
         </Button>
       </form>
     </div>
